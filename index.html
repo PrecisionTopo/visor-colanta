@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visor de fincas Colanta · Precisión Topografía</title>
+<link rel="icon" href="/clientes/icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#025868; --teal-d:#03758a; --orange:#FF8A00; --ink:#3C4445; --muted:#6f7a7c;
+  --bg:#f4f7f7; --card:#fff; --line:#d9e2e4; --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:'Nunito Sans',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+header{height:58px;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--teal);color:#fff}
+header img{height:38px;width:auto;background:#fff;border-radius:8px;padding:3px}
+header .t{line-height:1.15}
+header .t b{font-size:16px;display:block}
+header .t span{font-size:12px;opacity:.85}
+header .sp{flex:1}
+header .kpi{display:flex;gap:18px;font-size:12px}
+header .kpi div{text-align:right}
+header .kpi b{display:block;font-size:17px}
+#app{display:flex;height:calc(100% - 58px)}
+aside{width:340px;min-width:280px;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column}
+.filters{padding:12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.filters input,.filters select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:14px;background:#fff}
+.count{font-size:12px;color:var(--muted)}
+#list{overflow:auto;flex:1}
+.item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:10px;align-items:center}
+.item:hover{background:#e6f0f2}
+.item.on{background:#e6f0f2;border-left:4px solid var(--orange);padding-left:8px}
+.item .id{font-size:11px;font-weight:700;color:#fff;background:var(--teal);border-radius:6px;padding:3px 6px;min-width:36px;text-align:center}
+.item .n{font-weight:600;font-size:14px}
+.item .m{font-size:12px;color:var(--muted)}
+.item .ha{margin-left:auto;font-size:13px;font-weight:600;white-space:nowrap}
+main{flex:1;position:relative}
+#map{position:absolute;inset:0}
+#ficha{position:absolute;top:12px;right:12px;width:340px;max-height:calc(100% - 24px);overflow:auto;background:var(--card);border-radius:var(--r);box-shadow:0 6px 24px rgba(0,0,0,.18);z-index:500;display:none}
+#ficha .hd{background:var(--teal);color:#fff;padding:12px 14px;border-radius:var(--r) var(--r) 0 0;position:sticky;top:0}
+#ficha .hd b{font-size:17px;display:block}
+#ficha .hd span{font-size:12px;opacity:.9}
+#ficha .x{position:absolute;right:10px;top:8px;background:none;border:0;color:#fff;font-size:22px;cursor:pointer}
+#ficha .bd{padding:12px 14px}
+.big{display:flex;gap:10px;margin-bottom:10px}
+.big div{flex:1;background:#f0f6f5;border-radius:8px;padding:8px}
+.big b{font-size:20px;display:block;color:var(--teal-d)}
+.big span{font-size:11px;color:var(--muted)}
+h4{margin:14px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td{padding:5px 2px;border-bottom:1px solid var(--line)}
+td.r{text-align:right;font-variant-numeric:tabular-nums}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid rgba(0,0,0,.2)}
+.bar{height:10px;border-radius:5px;overflow:hidden;display:flex;margin:6px 0 2px}
+.lay label{display:flex;align-items:center;gap:6px;font-size:13px;padding:3px 0;cursor:pointer}
+.pot{max-height:220px;overflow:auto}
+.btn{display:inline-block;margin-top:12px;padding:8px 12px;border-radius:8px;background:var(--orange);color:#fff;text-decoration:none;font-size:13px;font-weight:600}
+.note{font-size:11px;color:var(--muted);margin-top:10px}
+.leaflet-tooltip.lbl{background:rgba(255,255,255,.85);border:0;box-shadow:none;font-size:11px;font-weight:600;padding:1px 4px}
+.leaflet-tooltip.lbl:before{display:none}
+#load{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:#fff;padding:6px 12px;border-radius:20px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:600;display:none}
+#tog{display:none}
+@media (max-width:760px){
+  header .kpi{display:none}
+  aside{position:absolute;z-index:700;top:58px;bottom:0;left:0;width:86%;transform:translateX(-100%);transition:.2s}
+  aside.open{transform:none}
+  #tog{display:block;position:absolute;left:10px;top:10px;z-index:650;background:var(--teal);color:#fff;border:0;border-radius:8px;padding:8px 12px;font:inherit;font-weight:600}
+  #ficha{left:10px;right:10px;width:auto;top:auto;bottom:10px;max-height:55%}
+}
+</style>
+</head>
+<body>
+<header>
+  <img src="/clientes/icon-192.png" alt="Precisión" onerror="this.style.display='none'">
+  <div class="t"><b>Fincas Colanta</b><span>Precisión Topografía SAS · mide el campo</span></div>
+  <div class="sp"></div>
+  <div class="kpi">
+    <div><b id="kF">–</b>fincas</div>
+    <div><b id="kH">–</b>ha levantadas</div>
+    <div><b id="kP">–</b>ha en potreros</div>
+  </div>
+</header>
+<div id="app">
+  <aside id="side">
+    <div class="filters">
+      <input id="q" type="search" placeholder="Buscar finca, número o vereda">
+      <select id="mun"><option value="">Todos los municipios</option></select>
+      <div class="count" id="cnt"></div>
+    </div>
+    <div id="list"></div>
+  </aside>
+  <main>
+    <div id="map"></div>
+    <button id="tog">☰ Fincas</button>
+    <div id="load">Cargando finca…</div>
+    <div id="ficha"></div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbzH6LTTqO4jb6hXfV-hOCo4pFDEl3gjP4VmuIkz4pvmaxxj3_lxHd65gVUnhK1iJpG4XA/exec';
+const COLORS = {
+  'Potreros':'#8cc63f','Potreros enmalezados':'#c2b23a','Tránsito':'#e8d39a','Construcción':'#e4572e',
+  'Bosque':'#1f6f3f','Cultivo':'#f2d64b','Inundable':'#3d8fd1','Remoción':'#8b5a2b','Camino de ganado':'#c9a46b',
+  'Vía':'#ffffff','Drenaje':'#29a8e0'
+};
+const colorOf = c => COLORS[c] || '#9aa5a5';
+const fmt = (n, d=2) => n == null || isNaN(n) ? '–' : Number(n).toLocaleString('es-CO', {minimumFractionDigits:d, maximumFractionDigits:d});
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const map = L.map('map', {zoomControl:true, preferCanvas:true}).setView([6.6, -75.4], 9);
+const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 20, maxNativeZoom: 18, attribution: 'Imágenes © Esri, Maxar, Earthstar Geographics'}).addTo(map);
+const calles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 20, maxNativeZoom: 19, attribution: '© OpenStreetMap'});
+const baseCtl = L.control.layers({'Satélite': sat, 'Calles': calles}, null, {position:'bottomleft'}).addTo(map);
+L.control.scale({imperial:false, position:'bottomright'}).addTo(map);
+
+let INDEX = [], byId = {}, linderos = {}, marcadores = {}, actual = null, capaFinca = null;
+const grupoLind = L.layerGroup().addTo(map);
+const grupoPts = L.layerGroup().addTo(map);
+
+function toLL(g){ // [[ring...]] polygons in [lng,lat] -> leaflet latlngs
+  return g.map(poly => poly.map(ring => ring.map(c => [c[1], c[0]])));
+}
+
+document.getElementById('load').textContent = 'Cargando fincas…'; document.getElementById('load').style.display = 'block';
+fetch(API + '?f=index').then(r => r.json()).then(d => {
+  document.getElementById('load').style.display = 'none'; document.getElementById('load').textContent = 'Cargando finca…';
+  INDEX = d.fincas;
+  INDEX.forEach(f => byId[f.id] = f);
+  document.getElementById('kF').textContent = INDEX.length;
+  document.getElementById('kH').textContent = fmt(INDEX.reduce((s,f)=>s+(f.total||0),0), 0);
+  document.getElementById('kP').textContent = fmt(INDEX.reduce((s,f)=>s+((f.areas||{})['Potreros']||0),0), 0);
+  const muns = [...new Set(INDEX.map(f=>f.municipio))].sort((a,b)=>a.localeCompare(b,'es'));
+  const sel = document.getElementById('mun');
+  muns.forEach(m => sel.insertAdjacentHTML('beforeend', `<option>${esc(m)}</option>`));
+
+  INDEX.forEach(f => {
+    if (f.lindero) {
+      const p = L.polygon(toLL(f.lindero), {color:'#FF8A00', weight:2, fillColor:'#FF8A00', fillOpacity:.12});
+      p.on('click', () => abrir(f.id));
+      p.bindTooltip(`${f.id} · ${f.nombre}`, {sticky:true});
+      linderos[f.id] = p; grupoLind.addLayer(p);
+    }
+    if (f.lat && f.lon) {
+      const m = L.circleMarker([f.lat, f.lon], {radius:6, color:'#fff', weight:2, fillColor:'#025868', fillOpacity:1});
+      m.on('click', () => abrir(f.id));
+      m.bindTooltip(`${f.id} · ${f.nombre}`);
+      marcadores[f.id] = m; grupoPts.addLayer(m);
+    }
+  });
+  const b = L.featureGroup(Object.values(marcadores)).getBounds();
+  if (b.isValid()) map.fitBounds(b, {padding:[30,30]});
+  pintarLista();
+  const h = location.hash.match(/^#f(\d{3})$/);
+  if (h && byId[h[1]]) abrir(h[1]);
+});
+
+map.on('zoomend', () => {
+  const z = map.getZoom();
+  if (z >= 14) map.removeLayer(grupoPts); else if (!map.hasLayer(grupoPts)) map.addLayer(grupoPts);
+});
+
+function filtradas(){
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const m = document.getElementById('mun').value;
+  return INDEX.filter(f => (!m || f.municipio === m) &&
+    (!q || [f.id, f.nombre, f.vereda, f.municipio].join(' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+      .includes(q.normalize('NFD').replace(/[̀-ͯ]/g,''))));
+}
+function pintarLista(){
+  const fs = filtradas();
+  document.getElementById('cnt').textContent = `${fs.length} de ${INDEX.length} fincas · ${fmt(fs.reduce((s,f)=>s+(f.total||0),0),1)} ha`;
+  document.getElementById('list').innerHTML = fs.map(f => `
+    <div class="item ${actual===f.id?'on':''}" data-id="${f.id}">
+      <span class="id">${f.id}</span>
+      <div><div class="n">${esc(f.nombre)}</div><div class="m">${esc(f.municipio)}${f.vereda?' · '+esc(f.vereda):''}</div></div>
+      <span class="ha">${fmt(f.total,1)} ha</span>
+    </div>`).join('');
+  const ids = new Set(fs.map(f=>f.id));
+  Object.entries(marcadores).forEach(([id,m]) => m.setStyle({opacity: ids.has(id)?1:.15, fillOpacity: ids.has(id)?1:.15}));
+  Object.entries(linderos).forEach(([id,p]) => p.setStyle({opacity: ids.has(id)?1:.15, fillOpacity: ids.has(id)?.12:.02}));
+}
+document.getElementById('q').addEventListener('input', pintarLista);
+document.getElementById('mun').addEventListener('change', e => {
+  pintarLista();
+  const fs = filtradas();
+  const b = L.featureGroup(fs.map(f => linderos[f.id] || marcadores[f.id]).filter(Boolean)).getBounds();
+  if (b.isValid()) map.fitBounds(b, {padding:[30,30], maxZoom:15});
+});
+document.getElementById('list').addEventListener('click', e => {
+  const it = e.target.closest('.item'); if (it) { abrir(it.dataset.id); document.getElementById('side').classList.remove('open'); }
+});
+document.getElementById('tog').addEventListener('click', () => document.getElementById('side').classList.toggle('open'));
+window.addEventListener('hashchange', () => { const h = location.hash.match(/^#f(\d{3})$/); if (h && h[1] !== actual && byId[h[1]]) abrir(h[1]); });
+
+const cache = {};
+async function abrir(id){
+  actual = id; pintarLista();
+  if (location.hash !== '#f'+id) history.replaceState(null, '', '#f'+id);
+  const f = byId[id];
+  const ld = document.getElementById('load'); ld.style.display = 'block';
+  let det = cache[id];
+  try { if (!det) det = f.det ? (cache[id] = await fetch(`${API}?f=${id}`).then(r => r.ok ? r.json() : null)) : null; if (det && det.error) det = null; } catch(e) { det = null; }
+  ld.style.display = 'none';
+  if (actual !== id) return;
+  if (capaFinca) map.removeLayer(capaFinca);
+  capaFinca = L.layerGroup().addTo(map);
+  const capas = {};
+  const add = (cat, layer) => { (capas[cat] = capas[cat] || L.layerGroup().addTo(capaFinca)).addLayer(layer); };
+
+  if (det) {
+    // orden: grandes primero, pequeños encima
+    const usos = [...det.uso].sort((a,b) => (b.ha||0)-(a.ha||0));
+    usos.forEach(u => u.f.forEach(ft => {
+      const p = L.polygon(toLL(ft.g), {color:'#fff', weight:1, fillColor: colorOf(u.cat), fillOpacity:.55});
+      const nm = ft.n && !/^\d+$/.test(ft.n) ? ft.n : '';
+      p.bindPopup(`<b>${esc(u.cat)}${nm?' · '+esc(nm):''}</b><br>${fmt(ft.ha,2)} ha`);
+      if (u.cat === 'Potreros' && nm) p.bindTooltip(nm, {permanent:true, direction:'center', className:'lbl'});
+      add(u.cat, p);
+    }));
+    det.lineas.forEach(l => l.g.forEach(line => {
+      const ll = line.map(c => [c[1], c[0]]);
+      const st = l.cat === 'Vía' ? {color:'#fff', weight:4, dashArray:'6 6'} :
+                 l.cat === 'Drenaje' ? {color:colorOf('Drenaje'), weight:2.5} :
+                 {color: colorOf(l.cat), weight:3};
+      add(l.cat, L.polyline(ll, st).bindPopup(`<b>${esc(l.cat)}</b><br>${fmt(l.km,2)} km en total`));
+    }));
+  }
+  const lind = det && det.lindero ? det.lindero : f.lindero;
+  let bounds = null;
+  if (lind) {
+    const p = L.polygon(toLL(lind), {color:'#FF8A00', weight:3, fill:false, interactive:false});
+    add('Lindero', p); bounds = p.getBounds();
+  }
+  if (!bounds && f.lat) bounds = L.latLng(f.lat, f.lon).toBounds(600);
+  if (bounds) map.fitBounds(bounds, {padding:[30,30], maxZoom:18});
+  if (linderos[id]) grupoLind.removeLayer(linderos[id]);
+  Object.entries(linderos).forEach(([k,p]) => { if (k!==id && !grupoLind.hasLayer(p)) grupoLind.addLayer(p); });
+  ficha(f, det, capas);
+}
+
+function ficha(f, det, capas){
+  const areas = Object.entries(f.areas || {}).sort((a,b)=>b[1]-a[1]);
+  const tot = f.total || areas.reduce((s,a)=>s+a[1],0);
+  const pots = det ? (det.uso.find(u=>u.cat==='Potreros')||{f:[]}).f.filter(x=>x.ha) : [];
+  pots.sort((a,b)=> (a.n||'').localeCompare(b.n||'', 'es', {numeric:true}));
+  const promedio = pots.length ? pots.reduce((s,p)=>s+p.ha,0)/pots.length : null;
+  const lineas = det ? det.lineas : [];
+  const el = document.getElementById('ficha');
+  el.innerHTML = `
+    <div class="hd"><button class="x" title="Cerrar">×</button>
+      <span>Finca ${f.id}</span><b>${esc(f.nombre)}</b>
+      <span>${esc(f.municipio)}${f.vereda?' · Vereda '+esc(f.vereda):''} · ${esc(f.depto||'')}</span></div>
+    <div class="bd">
+      <div class="big">
+        <div><b>${fmt(tot,2)}</b><span>ha totales</span></div>
+        <div><b>${pots.length || '–'}</b><span>potreros${promedio?` · ${fmt(promedio,2)} ha prom.`:''}</span></div>
+      </div>
+      ${areas.length ? `<div class="bar">${areas.map(([c,v])=>`<span style="width:${v/tot*100}%;background:${colorOf(c)}" title="${esc(c)}"></span>`).join('')}</div>
+      <h4>Uso del suelo</h4>
+      <table>${areas.map(([c,v])=>`<tr><td><span class="sw" style="background:${colorOf(c)}"></span>${esc(c)}</td><td class="r">${fmt(v,2)} ha</td><td class="r">${fmt(v/tot*100,1)}%</td></tr>`).join('')}</table>` : ''}
+      ${lineas.length ? `<h4>Infraestructura</h4><table>${lineas.map(l=>`<tr><td><span class="sw" style="background:${colorOf(l.cat)}"></span>${esc(l.cat)}</td><td class="r">${fmt(l.km,2)} km</td></tr>`).join('')}</table>`:''}
+      <h4>Capas en el mapa</h4>
+      <div class="lay">${Object.keys(capas).map(c=>`<label><input type="checkbox" checked data-c="${esc(c)}"><span class="sw" style="background:${c==='Lindero'?'#FF8A00':colorOf(c)}"></span>${esc(c)}</label>`).join('')}</div>
+      ${pots.length ? `<h4>Potreros</h4><div class="pot"><table>${pots.map(p=>`<tr><td>${esc(p.n||'')}</td><td class="r">${fmt(p.ha,2)} ha</td></tr>`).join('')}</table></div>`:''}
+      ${!det ? '<p class="note">Esta finca no tiene capas detalladas; se muestra solo el lindero.</p>' : ''}
+      <p class="note">Levantamiento: ${esc(f.fecha||'s. f.')} · Áreas según base de datos de Precisión.</p>
+    </div>`;
+  el.style.display = 'block';
+  el.querySelector('.x').onclick = () => { el.style.display='none'; };
+  el.querySelectorAll('.lay input').forEach(cb => cb.onchange = () => {
+    const g = capas[cb.dataset.c]; if (!g) return;
+    cb.checked ? capaFinca.addLayer(g) : capaFinca.removeLayer(g);
+  });
+}
+</script>
+</body>
+</html>
